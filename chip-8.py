@@ -1,8 +1,8 @@
-
-
 class Chip8:
+    """The basic shape of chip8.
+        Sacrificing moudularity since this is a pretty difficult project.
+        Therefore the entire thing is going to be in one class."""
 
-    """The basic shape of chip8"""
     def __init__(self):
 
         #The chip-8 has 16 eight bit registers ranging from V0 to VF.
@@ -26,7 +26,6 @@ class Chip8:
 
         #The start of the program/data space of memory where the roms are loaded from
         self.START_ADDR = 0x200
-
 
     def loadRom(self,file):
         """loading a specified rom"""
@@ -71,9 +70,34 @@ class Chip8:
         self.FONT_ADDR = 0x50
         for font in self.fontset:
             self.memory[self.FONT_ADDR] = font
-            self.FONT_ADDR += 1
+            self.FONT_ADDR
+
+    def executeOpcode(self,opcode):
+        #Match opcode using black magic and execute opcode
+        pass
+
+    def OP_00E0(self):
+        #clear the display
+        self.video = [[0] * 64 for i in self.video]
+
+    def OP_00EE(self):
+        #Return from a subroutine
+        #the stack pointer gets decremented and the top of the stack is popped off into the pc
+        self.stackPointer -= 1
+        self.pc = self.stackPointer[self.stackPointer]
+    
+    def OP_1nnn(self):
+        #Jump to location nnn
+        #The intepreter sets program counter to nnn
+
+        self.address = 
+
+
+
+
 
 if __name__ == "__main__":
     emulator = Chip8()
     emulator.loadFontSet()
     emulator.loadRom('BC_test.ch8')
+    emulator.OP_00E0()
