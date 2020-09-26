@@ -5,12 +5,17 @@ class Chip8:
 
     def __init__(self):
 
+        #The start of the program/data space of memory where the roms are loaded from
+        self.START_ADDR = 0x200
+        #Where fonts are loaded from
+        self.FONT_ADDR = 0x50
+
         #The chip-8 has 16 eight bit registers ranging from V0 to VF.
         self.V = [0] * 16
 
         self.memory = [0] * 4096
         self.index = None
-        self.pc = None
+        self.pc = self.START_ADDR
         self.stack = [0] * 16
         self.stackPointer = None
 
@@ -24,9 +29,6 @@ class Chip8:
         self.video = [[0]*64 for i in range(32)]
         self.opcode = None
 
-        #The start of the program/data space of memory where the roms are loaded from
-        self.START_ADDR = 0x200
-
     def loadRom(self,file):
         """loading a specified rom"""
 
@@ -35,10 +37,10 @@ class Chip8:
             self.counter = self.START_ADDR
             while True:
                 byte = file.read(1)
-                print('READING BYTE: ',byte,end = '\t')
+                print('READING BYTE: ',byte,int.from_bytes(byte, byteorder = 'big'),end = '\t')
                 if not byte:
                     break
-                self.memory[self.counter] = byte
+                self.memory[self.counter] = int.from_bytes(byte, byteorder = 'big')
                 print(self.counter)
                 self.counter += 1
 
@@ -67,30 +69,33 @@ class Chip8:
             0xF0, 0x80, 0xF0, 0x80, 0x80  # F
         ]
 
-        self.FONT_ADDR = 0x50
+        self.counter = self.FONT_ADDR
         for font in self.fontset:
-            self.memory[self.FONT_ADDR] = font
-            self.FONT_ADDR
+            self.memory[self.counter] = font
+            self.counter += 1
 
-    def executeOpcode(self,opcode):
-        #Match opcode using black magic and execute opcode
-        pass
+    def executeOpcode(self):
+        #Get the required x, y and n values to be used in each opcode
+        #Determine which opcode to execute with large if statement
+        firstNibble = (self.opcode & 0xF000) >> 12
+        X = (self.opcode & 0x0F00) >> 8
+        Y = (self.opcode & 0x00F0) >> 4
+        N = (self.opcode & 0x000F)
 
-    def OP_00E0(self):
-        #clear the display
-        self.video = [[0] * 64 for i in self.video]
+        print(firstNibble,X,Y,N)
 
-    def OP_00EE(self):
-        #Return from a subroutine
-        #the stack pointer gets decremented and the top of the stack is popped off into the pc
-        self.stackPointer -= 1
-        self.pc = self.stackPointer[self.stackPointer]
-    
-    def OP_1nnn(self):
-        #Jump to location nnn
-        #The intepreter sets program counter to nnn
+    def cycle(self):
+        #The main fetch, decode execute cycle of the processor
+        print()
 
-        self.address = 
+        for i in range(100):
+            #construct the opcode from two bytes
+            self.opcode = self.memory[self.pc] << 8 | self.memory[self.pc+1]
+            print(hex(self.opcode), end = '\t')
+            self.executeOpcode()
+
+            #increment pc by two as each instruction is 2 bytes
+            self.pc += 2
 
 
 
@@ -99,5 +104,5 @@ class Chip8:
 if __name__ == "__main__":
     emulator = Chip8()
     emulator.loadFontSet()
-    emulator.loadRom('BC_test.ch8')
-    emulator.OP_00E0()
+    emulator.loadRom('IBM Logo.ch8')
+    emulator.cycle()
