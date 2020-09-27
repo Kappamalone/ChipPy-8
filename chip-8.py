@@ -1,3 +1,8 @@
+import pygame
+
+pygame.init()
+pygame.display.set_caption('ChipPy-8')
+
 class Chip8:
     """The basic shape of chip8.
         Sacrificing moudularity since this is a pretty difficult project.
@@ -26,7 +31,9 @@ class Chip8:
         #The keypad has the hexadecimal characters for input
         self.keypad = [0] * 16
 
+        #Two dimensional matrix for representation of graphics
         self.video = [[0]*64 for i in range(32)]
+
         self.opcode = None
 
     def loadRom(self,file):
@@ -75,27 +82,73 @@ class Chip8:
             self.counter += 1
 
     def executeOpcode(self):
-        #Get the required x, y and n values to be used in each opcode
-        #Determine which opcode to execute with large if statement
-        firstNibble = (self.opcode & 0xF000) >> 12
-        X = (self.opcode & 0x0F00) >> 8
-        Y = (self.opcode & 0x00F0) >> 4
-        N = (self.opcode & 0x000F)
+        #Decode a given opcode and extract the required
+        #values from the opcode which are X, Y and N
 
-        print(firstNibble,X,Y,N)
+        self.identifier = (self.opcode & 0xF000) >> 12 #First Nibble: Used to differentiate most opcodes apart
+        self.X = (self.opcode & 0x0F00) >> 8 # Second Nibble: 
+        self.Y = (self.opcode & 0x00F0) >> 4 # Third Nibble:
+        self.N = (self.opcode & 0x000F) # Fourth Nibble: 
+        self.NN = self.opcode & 0x00FF # Third and Fourth Nibble: 
+        self.NNN = self.opcode & 0x0FFF # Second, Third and Fourth Nibble:  
+        #print(self.identifier, self.X, self.Y, self.N, self.NN, self.NNN)
+
+        if self.identifier == 0x0:
+            if self.Y == 0xE:
+                #00E0: Clear Screen
+                self.video = [[0]*64 for i in range(32)]
+
+                if self.N == 0xE:
+                    #00EE: Return from subroutine
+                    pass
+
+        elif self.identifier == 0x1:
+            #1nnn: Jump to location nnn
+            self.pc = self.NNN
+            print('Executing: ', hex(self.opcode))
+
+
+        elif self.identifier == 0x6:
+            #6xnn: Set register VX to nn
+            self.V[self.X] = self.NN
+            print('Executing: ', hex(self.opcode))
+
+        elif self.identifier == 0x7:
+            #7xnn: Set register VX to VX += nn
+            self.V[self.X] += self.NN
+            print('Executing: ', hex(self.opcode))
+
+        elif self.identifier == 0xA:
+            #Annn: Set index register i to nnn
+            self.index = self.NNN
+            print('Executing: ', hex(self.opcode))
+
+        elif self.identifier == 0xD:
+            #Dxyn: Draw and display
+            print('Executing: ', hex(self.opcode))
+            pass
+
+        
 
     def cycle(self):
         #The main fetch, decode execute cycle of the processor
         print()
 
         for i in range(100):
-            #construct the opcode from two bytes
+            #construct the opcode from two bytes, the current pc and pc+1
             self.opcode = self.memory[self.pc] << 8 | self.memory[self.pc+1]
-            print(hex(self.opcode), end = '\t')
-            self.executeOpcode()
 
             #increment pc by two as each instruction is 2 bytes
             self.pc += 2
+
+            #print(hex(self.opcode), end = '\t')
+            self.executeOpcode()
+
+class window:
+    '''Class to handle Chip-8 timing and pygame shenanigans'''
+
+    def __init__(self):
+        pass
 
 
 
