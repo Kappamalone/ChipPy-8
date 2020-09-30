@@ -1,8 +1,3 @@
-import pygame
-
-pygame.init()
-pygame.display.set_caption('ChipPy-8')
-
 class Chip8:
     """The basic shape of chip8.
         Sacrificing moudularity since this is a pretty difficult project.
@@ -52,6 +47,7 @@ class Chip8:
                 self.counter += 1
 
             #print(self.memory[80:])
+        print()
 
     def loadFontSet(self):
         """load the fontset of the chip-8 into memory"""
@@ -97,6 +93,10 @@ class Chip8:
             if self.Y == 0xE:
                 #00E0: Clear Screen
                 self.video = [[0]*64 for i in range(32)]
+                print('Executing 00E0: Clear Screen')
+
+                #returning true so pygame redraws screen
+                return True
 
                 if self.N == 0xE:
                     #00EE: Return from subroutine
@@ -105,57 +105,47 @@ class Chip8:
         elif self.identifier == 0x1:
             #1nnn: Jump to location nnn
             self.pc = self.NNN
-            print('Executing: ', hex(self.opcode))
+            print('Executing 1nnn: ', hex(self.opcode))
 
 
         elif self.identifier == 0x6:
             #6xnn: Set register VX to nn
             self.V[self.X] = self.NN
-            print('Executing: ', hex(self.opcode))
+            print('Executing 6xnn: ', hex(self.opcode))
 
         elif self.identifier == 0x7:
             #7xnn: Set register VX to VX += nn
             self.V[self.X] += self.NN
-            print('Executing: ', hex(self.opcode))
+            print('Executing 7xnn: ', hex(self.opcode))
 
         elif self.identifier == 0xA:
             #Annn: Set index register i to nnn
             self.index = self.NNN
-            print('Executing: ', hex(self.opcode))
+            print('Executing Annn: ', hex(self.opcode))
 
         elif self.identifier == 0xD:
             #Dxyn: Draw and display
-            print('Executing: ', hex(self.opcode))
-            pass
+            print('Executing Dxyn: ', hex(self.opcode))
+
+            #returning true so pygame redraws screen
+            return True
+            
 
         
 
     def cycle(self):
         #The main fetch, decode execute cycle of the processor
-        print()
+        
+        #fetch and construct the opcode from two bytes, the current pc and pc+1
+        self.opcode = self.memory[self.pc] << 8 | self.memory[self.pc+1]
 
-        for i in range(100):
-            #construct the opcode from two bytes, the current pc and pc+1
-            self.opcode = self.memory[self.pc] << 8 | self.memory[self.pc+1]
+        #increment pc by two as each instruction is 2 bytes
+        self.pc += 2
 
-            #increment pc by two as each instruction is 2 bytes
-            self.pc += 2
+        #print(hex(self.opcode), end = '\t')
 
-            #print(hex(self.opcode), end = '\t')
-            self.executeOpcode()
+        #decode and execute instruction, as well as draw to screen if needed
+        self.redraw = self.executeOpcode()
+        if self.redraw:
+            return True
 
-class window:
-    '''Class to handle Chip-8 timing and pygame shenanigans'''
-
-    def __init__(self):
-        pass
-
-
-
-
-
-if __name__ == "__main__":
-    emulator = Chip8()
-    emulator.loadFontSet()
-    emulator.loadRom('IBM Logo.ch8')
-    emulator.cycle()
