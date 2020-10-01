@@ -19,9 +19,31 @@ class window:
         self.height = 32 * 16
         self.screen = pygame.display.set_mode((self.width, self.height))
 
+    def drawGrid(self):
+        self.blockSizeX = self.width/ 64  #Set the Xsize of the grid block
+        self.blockSizeY = self.height/ 32 #Set the Ysize of the grid block
+        for x in range(64):
+            for y in range(32):
+                self.rect = pygame.Rect(x*self.blockSizeX, y*self.blockSizeY,
+                                self.blockSizeX, self.blockSizeY)
+                if self.emulator.getVideo()[y][x] == 1:
+                    pygame.draw.rect(self.screen,(255, 255, 255),self.rect, 0)
+                else:
+                    pygame.draw.rect(self.screen,(0, 0, 0),self.rect, 0)
+
+                    
     def main(self):
+        self.drawGrid()
+        pygame.display.update()
         for i in range(100):
-            print(self.emulator.cycle())
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    break
+
+            self.drawFlag = self.emulator.cycle()
+            if self.drawFlag:
+                self.drawGrid()
+                pygame.display.update()
 
 
 

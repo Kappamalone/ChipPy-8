@@ -77,6 +77,9 @@ class Chip8:
             self.memory[self.counter] = font
             self.counter += 1
 
+    def getVideo(self):
+        return self.video
+
     def executeOpcode(self):
         #Decode a given opcode and extract the required
         #values from the opcode which are X, Y and N
@@ -90,17 +93,16 @@ class Chip8:
         #print(self.identifier, self.X, self.Y, self.N, self.NN, self.NNN)
 
         if self.identifier == 0x0:
-            if self.Y == 0xE:
+            if self.NN == 0xEE:
+                #00EE: Return from subroutine
+                pass
+            elif self.Y == 0xE:
                 #00E0: Clear Screen
                 self.video = [[0]*64 for i in range(32)]
-                print('Executing 00E0: Clear Screen')
+                print('Executing 00E0: Clear Screen ' + hex(self.opcode))
 
                 #returning true so pygame redraws screen
                 return True
-
-                if self.N == 0xE:
-                    #00EE: Return from subroutine
-                    pass
 
         elif self.identifier == 0x1:
             #1nnn: Jump to location nnn
@@ -124,10 +126,40 @@ class Chip8:
             print('Executing Annn: ', hex(self.opcode))
 
         elif self.identifier == 0xD:
-            #Dxyn: Draw and display
+            # Dxyn: Draw and display
+
+            # Modulo to wrap around screen
+            self.Xvalue = self.V[self.X] % 64
+            self.Yvalue = self.V[self.Y] % 32
+            self.V[0xF] = 0 #Collision flag
+            
+            for i in range(self.N):
+                self.spriteByte = self.memory[self.index + i]
+
+                # Read bits from byte starting from LSB
+                if self.Yvalue < 32:
+                    for i in range(8):
+                        if self.Xvalue < 64:
+                            self.bit = 0
+                            if (self.spriteByte & (2**i)) != 0:
+                                self.bit = 1
+                            
+                            if self.bit and self.video[self.Yvalue][self.Xvalue]:
+                                self.video[self.Yvalue][self.Xvalue] = 0
+                                self.V[0xF] = 1 # Set collision
+                            else:
+                                self.video[self.Yvalue][self.Xvalue] = 1
+                            self.Xvalue += 1
+                    self.Yvalue += 1
+                
+                    
+
+
+                print(hex(self.spriteByte))
+
             print('Executing Dxyn: ', hex(self.opcode))
 
-            #returning true so pygame redraws screen
+            # Returning true so pygame redraws screen
             return True
             
 
@@ -145,7 +177,7 @@ class Chip8:
         #print(hex(self.opcode), end = '\t')
 
         #decode and execute instruction, as well as draw to screen if needed
-        self.redraw = self.executeOpcode()
-        if self.redraw:
+        self.redrawFlag = self.executeOpcode()
+        if self.redrawFlag:
             return True
 
