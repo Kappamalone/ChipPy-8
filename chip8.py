@@ -121,7 +121,7 @@ class Chip8:
             print('Executing 7xnn: ', hex(self.opcode))
 
         elif self.identifier == 0xA:
-            #Annn: Set index register i to nnn
+            #Annn: Set index register index to nnn
             self.index = self.NNN
             print('Executing Annn: ', hex(self.opcode))
 
@@ -132,30 +132,26 @@ class Chip8:
             self.Xvalue = self.V[self.X] % 64
             self.Yvalue = self.V[self.Y] % 32
             self.V[0xF] = 0 #Collision flag
-            
-            for i in range(self.N):
-                self.spriteByte = self.memory[self.index + i]
 
-                # Read bits from byte starting from LSB
-                if self.Yvalue < 32:
-                    for i in range(8):
-                        if self.Xvalue < 64:
-                            self.bit = 0
-                            if (self.spriteByte & (2**i)) != 0:
-                                self.bit = 1
-                            
-                            if self.bit and self.video[self.Yvalue][self.Xvalue]:
-                                self.video[self.Yvalue][self.Xvalue] = 0
-                                self.V[0xF] = 1 # Set collision
-                            else:
-                                self.video[self.Yvalue][self.Xvalue] = 1
-                            self.Xvalue += 1
-                    self.Yvalue += 1
+            for row in range(self.N):
+                self.spriteByte = self.memory[self.index + row]
                 
+                for column in range(8):
+                    #Get value of bit
+                    self.spritePixel = 0
+                    if (self.spriteByte & (0x80 >> column)) > 0:
+                        self.spritePixel = 1 
+
+                    self.screenPixel = self.video[self.Yvalue + row][self.Xvalue + column]
                     
 
+                    self.spriteXorScreen = self.spritePixel ^ self.screenPixel
+                    self.video[self.Yvalue + row][self.Xvalue + column] = self.spriteXorScreen
+                    
+                    #If screen pixel has been xor'ed, then set collision flag
+                    if self.spritePixel and not self.spriteXorScreen:
+                        self.V[0xF] = 1
 
-                print(hex(self.spriteByte))
 
             print('Executing Dxyn: ', hex(self.opcode))
 

@@ -18,7 +18,7 @@ class window:
         self.width = 64 * 16
         self.height = 32 * 16
         self.screen = pygame.display.set_mode((self.width, self.height))
-
+        self.isRunning = True
     def drawGrid(self):
         self.blockSizeX = self.width/ 64  #Set the Xsize of the grid block
         self.blockSizeY = self.height/ 32 #Set the Ysize of the grid block
@@ -35,10 +35,10 @@ class window:
     def main(self):
         self.drawGrid()
         pygame.display.update()
-        for i in range(100):
+        while self.isRunning:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    break
+                    self.isRunning = False
 
             self.drawFlag = self.emulator.cycle()
             if self.drawFlag:
