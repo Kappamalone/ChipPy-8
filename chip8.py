@@ -1,3 +1,5 @@
+import random
+
 class Chip8:
     """The basic shape of chip8.
         Sacrificing moudularity since this is a pretty difficult project.
@@ -17,7 +19,7 @@ class Chip8:
         self.index = None
         self.pc = self.START_ADDR
         self.stack = [0] * 16
-        self.stackPointer = None
+        self.stackPointer = -1
 
         #Both these timers decrement at a rate of 60hz if not 0
         self.delayTimer = None
@@ -95,7 +97,9 @@ class Chip8:
         if self.identifier == 0x0:
             if self.NN == 0xEE:
                 #00EE: Return from subroutine
-                pass
+                self.pc = self.stack[self.stackPointer]
+                self.stackPointer -= 1
+
             elif self.Y == 0xE:
                 #00E0: Clear Screen
                 self.video = [[0]*64 for i in range(32)]
@@ -109,6 +113,30 @@ class Chip8:
             self.pc = self.NNN
             print('Executing 1nnn: ', hex(self.opcode))
 
+        elif self.identifier == 0x2:
+            #2nnn: Call subroutine at nnn
+            self.stackPointer += 1
+            self.stack[self.stackPointer] = self.pc
+            self.pc = self.NNN
+            print('Executing 2nnn: ', hex(self.opcode))
+
+        elif self.identifier == 0x3:
+            #3xnn: Skip next instruction if Vx = nn
+            if self.V[self.X] == self.NN:
+                self.pc += 2
+            print('Executing 3xnn: ', hex(self.opcode))
+
+        elif self.identifier == 0x4:
+            #4xnn: Skip next instruction if Vx != nn
+            if self.V[self.X] != self.NN:
+                self.pc += 2
+            print('Executing 4xnn: ', hex(self.opcode))
+
+        elif self.identifier == 0x5:
+            #5xy0: Skip next instruction if Vx = Vy
+            if self.V[self.X] == self.V[self.Y]:
+                self.pc += 2
+            print('Executing 5xnn: ', hex(self.opcode))
 
         elif self.identifier == 0x6:
             #6xnn: Set register VX to nn
@@ -120,10 +148,94 @@ class Chip8:
             self.V[self.X] += self.NN
             print('Executing 7xnn: ', hex(self.opcode))
 
+        elif self.identifier == 0x8:
+            if self.N == 0x0:
+                #8xy0: Stores the value of register Vy in register Vx
+                self.V[self.X] = self.V[self.Y]
+                print('Executing 8xy0: ', hex(self.opcode))
+
+            elif self.N == 0x1:
+                #8xy1: Set Vx = Vx OR Vy
+                self.V[self.X] = self.V[self.X] | self.V[self.Y]
+                print('Executing 8xy1: ', hex(self.opcode))
+            
+            elif self.N == 0x2:
+                #8xy1: Set Vx = Vx AND Vy
+                self.V[self.X] = self.V[self.X] & self.V[self.Y]
+                print('Executing 8xy2: ', hex(self.opcode))
+
+            elif self.N == 0x3:
+                #8xy3: Set Vx = Vx XOR Vy
+                self.V[self.X] = self.V[self.X] ^ self.V[self.Y]
+                print('Executing 8xy3: ', hex(self.opcode))
+            
+            elif self.N == 0x4:
+                #8xy4: Set Vx = Vx + Vy, set VF = carry
+                self.VxADDVy = (self.V[self.X] + self.V[self.Y])
+                if self.VxADDVy > 0xFF:
+                    self.V[0xF] = 1
+                else:
+                    self.V[0xF] = 0
+                self.Vx = self.VxADDVy & 0xFF
+                print('Executing 8xy4: ', hex(self.opcode))
+
+            elif self.N == 0x5:
+                #8xy5: Set Vx = Vx - Vy, set VF = NOT borrow
+                if self.V[self.X] > self.V[self.Y]:
+                    self.V[0xF] = 1
+                else:
+                    self.V[0xF] = 0
+                
+                self.V[self.X] = self.V[self.X] - self.V[self.Y]
+                print('Executing 8xy5: ', hex(self.opcode))
+
+            elif self.N == 0x6:
+                #8xy6: Set Vx = Vx SHR 1
+                if self.V[self.X] & 0x1:
+                    self.V[0xF] = 1
+                else:
+                    self.V[0xF] = 0
+
+                self.V[self.X] /= 2
+                print('Executing 8xy6: ', hex(self.opcode))
+
+            elif self.N == 0x7:
+                #8xy7: Set Vx = Vy - Vx, set VF = NOT borrow
+                if self.V[self.Y] > self.V[self.X]:
+                    self.V[0xF] = 1
+                else:
+                    self.V[0xF] = 0
+
+                self.V[self.X] = self.V[self.Y] - self.V[self.X]
+                print('Executing 8xy7: ', hex(self.opcode))
+
+            elif self.N == 0xE:
+                #8xyE: Set Vx = Vx SHL 1
+                if (self.V[self.X] & 0x80) != 0:
+                    self.V[0xF] = 1
+                else:
+                    self.V[0xF] = 0
+                
+                self.V[self.X] *= 2
+                print('Executing 8xyE: ', hex(self.opcode))
+
+        elif self.identifier == 0x9:
+            #9xy0: Skip next instruction if Vx != Vy
+            if self.V[self.X] != self.V[self.Y]:
+                self.pc += 2
+
         elif self.identifier == 0xA:
             #Annn: Set index register index to nnn
             self.index = self.NNN
             print('Executing Annn: ', hex(self.opcode))
+
+        elif self.identifier == 0xB:
+            #Bnnn: Jump to location nnn + V[0]
+            self.pc = self.NNN + self.V[0]
+
+        elif self.identifier == 0xC:
+            #Cxkk: Set Vx to random byte AND nn
+            self.V[self.X] = random.randint(0,256) & self.NN
 
         elif self.identifier == 0xD:
             # Dxyn: Draw and display
@@ -136,10 +248,10 @@ class Chip8:
             for row in range(self.N):
                 self.spriteByte = self.memory[self.index + row]
                 
-                for column in range(8):
+                for column in (range(8)):
                     #Get value of bit
                     self.spritePixel = 0
-                    if (self.spriteByte & (0x80 >> column)) > 0:
+                    if (self.spriteByte & (2**(7-column))) > 0:
                         self.spritePixel = 1 
 
                     self.screenPixel = self.video[self.Yvalue + row][self.Xvalue + column]
@@ -152,11 +264,34 @@ class Chip8:
                     if self.spritePixel and not self.spriteXorScreen:
                         self.V[0xF] = 1
 
-
             print('Executing Dxyn: ', hex(self.opcode))
 
             # Returning true so pygame redraws screen
             return True
+
+        elif self.identifier == 0xF:
+            if self.NN == 0x33:
+                #Fx33: Store BCD representation of Vx in memory locations I, I+1 and I+2
+                self.Vx = self.V[self.X]
+
+                self.hundreds = self.Vx  // 100
+                self.tens = (self.Vx // 10) % 10
+                self.ones = (self.Vx) % 10
+
+                self.BCD = [self.hundreds,self.tens,self.ones]
+                
+
+                for i in range(3):
+                    self.memory[self.index + i] = self.BCD[i]
+
+            elif self.NN == 0x55:
+                #Fx55: Store all register data in memory starting at I
+                self.storeAddr = self.index
+                for register in self.V:
+                    self.memory[self.storeAddr] = register
+                    self.storeAddr += 1
+                print('Executing Fx55: ', hex(self.opcode))
+            
             
 
         

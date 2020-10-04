@@ -12,13 +12,20 @@ class window:
         #Setup the chip-8 emulator by loading fontset and rom into memory
         self.emulator = Chip8()
         self.emulator.loadFontSet()
-        self.emulator.loadRom('IBM Logo.ch8')
+        self.rom = input('1: IBM, 2: BC, 3: Test: ')
+        if self.rom == '1':
+            self.emulator.loadRom('IBM Logo.ch8')
+        elif self.rom == '2':
+            self.emulator.loadRom('BC_test.ch8')
+        elif self.rom == '3':
+            self.emulator.loadRom('test_opcode.ch8')
 
         #Setting up pygame variables
         self.width = 64 * 16
         self.height = 32 * 16
         self.screen = pygame.display.set_mode((self.width, self.height))
         self.isRunning = True
+
     def drawGrid(self):
         self.blockSizeX = self.width/ 64  #Set the Xsize of the grid block
         self.blockSizeY = self.height/ 32 #Set the Ysize of the grid block
@@ -41,6 +48,7 @@ class window:
                     self.isRunning = False
 
             self.drawFlag = self.emulator.cycle()
+            #self.command = input('Enter command: ')
             if self.drawFlag:
                 self.drawGrid()
                 pygame.display.update()
