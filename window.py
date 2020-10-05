@@ -21,6 +21,8 @@ class window:
             self.emulator.loadRom('test_opcode.ch8')
         elif self.rom == '4':
             self.emulator.loadRom('pong.ch8')
+        elif self.rom == '5':
+            self.emulator.loadRom('tetris.ch8')
 
         #Setting up pygame variables
         self.width = 64 * 16
@@ -35,6 +37,7 @@ class window:
             for y in range(32):
                 self.rect = pygame.Rect(x*self.blockSizeX, y*self.blockSizeY,
                                 self.blockSizeX, self.blockSizeY)
+                                
                 if self.emulator.getVideo()[y][x] == 1:
                     pygame.draw.rect(self.screen,(255, 255, 255),self.rect, 0)
                 else:

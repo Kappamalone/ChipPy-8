@@ -6,12 +6,19 @@ class Chip8:
         Sacrificing moudularity since this is a pretty difficult project.
         Therefore the entire thing is going to be in one class."""
 
-    def __init__(self):
-
+    def __init__(self,speed = 600):
         #The start of the program/data space of memory where the roms are loaded from
         self.START_ADDR = 0x200
         #Where fonts are loaded from
         self.FONT_ADDR = 0x50
+
+        #Since the chip-8 isn't running at 60hz, we need to adjust for the timer values
+        self.speed = speed
+        #Calculate how many cycles should roughly equal a 60hz rate of decrease
+        self.timerThreshhold = speed//60
+        #Timer counter is incremented each cycle, and if it equals timerThreshold then the timers can decrease by 1
+        self.timerCounter = 0
+
 
         #The chip-8 has 16 eight bit registers ranging from V0 to VF.
         self.V = [0] * 16
@@ -233,6 +240,7 @@ class Chip8:
         elif self.identifier == 0xB:
             #Bnnn: Jump to location nnn + V[0]
             self.pc = self.NNN + self.V[0]
+            #self.pc = self.NNN + self.V[self.X]
 
         elif self.identifier == 0xC:
             #Cxkk: Set Vx to random byte AND nn
@@ -250,28 +258,56 @@ class Chip8:
                 self.spriteByte = self.memory[self.index + row]
                 
                 for column in (range(8)):
-                    #Get value of bit
-                    self.spritePixel = 0
-                    if (self.spriteByte & (2**(7-column))) > 0:
-                        self.spritePixel = 1 
+                    if (self.Yvalue + row) < 32 and (self.Xvalue + column) < 64:
+                        #Get value of bit
+                        self.spritePixel = 0
+                        if (self.spriteByte & (2**(7-column))) > 0:
+                            self.spritePixel = 1  
+                        self.screenPixel = self.video[(self.Yvalue + row)][(self.Xvalue + column)]
+                        
 
-                    self.screenPixel = self.video[(self.Yvalue + row) % 32][(self.Xvalue + column) % 64]
-                    
-
-                    self.spriteXorScreen = self.spritePixel ^ self.screenPixel
-                    self.video[(self.Yvalue + row) % 32][(self.Xvalue + column) % 64] = self.spriteXorScreen
-                    
-                    #If screen pixel has been xor'ed, then set collision flag
-                    if self.spritePixel and not self.spriteXorScreen:
-                        self.V[0xF] = 1
+                        self.spriteXorScreen = self.spritePixel ^ self.screenPixel
+                        self.video[(self.Yvalue + row)][(self.Xvalue + column)] = self.spriteXorScreen
+                        
+                        #If screen pixel has been xor'ed, then set collision flag
+                        if self.spritePixel and not self.spriteXorScreen:
+                            self.V[0xF] = 1
 
             print('Executing Dxyn: ', hex(self.opcode))
 
             # Returning true so pygame redraws screen
             return True
 
+        elif self.identifier == 0xE:
+            if self.N == 0xE:
+                #Ex9E: Skip next instruction if key with value of Vx pressed
+                pass
+            elif self.N == 0x1:
+                #ExA1: Skip next instruction if key with the value of Vx not pressed
+                pass
         elif self.identifier == 0xF:
-            if self.NN == 0x33:
+            if self.NN == 0x07:
+                #Fx07: Set Vx = delay timer value
+                self.V[self.X] = self.delayTimer
+            elif self.NN == 0x0A:
+                #Fx0A: Block execution until key pressed, value stored in Vx
+                pass
+            elif self.NN == 0x15:
+                #Fx15: Set Delay timer = Vx
+                self.delayTimer = self.V[self.X]
+            elif self.NN == 0x18:
+                #Fx18: Set sound timer = Vx
+                self.soundTimer = self.V[self.X]
+            elif self.NN == 0x1E:
+                #Fx1E: Index and Vx are added and stored in index
+                self.index += self.V[self.X]
+            elif self.NN == 0x29:
+                #Fx29: Set Index to address of hexadecimal character in Vx
+                self.char = self.V[self.X] & 0x0F
+                self.addressOfChar = self.char * 5 + self.FONT_ADDR
+                self.index = self.addressOfChar
+            
+            elif self.NN == 0x33:
                 #Fx33: Store BCD representation of Vx in memory locations I, I+1 and I+2
                 self.Vx = self.V[self.X]
 
@@ -318,10 +354,17 @@ class Chip8:
         #increment pc by two as each instruction is 2 bytes
         self.pc += 2
 
-        #print(hex(self.opcode), end = '\t')
-
+        #Deal with timers
+        self.timerCounter += 1
+        if self.timerCounter % self.timerThreshhold == 0:
+            if self.delayTimer:
+                self.delayTimer -= 1
+            if self.soundTimer:
+                self.soundTimer -= 1
+        
         #decode and execute instruction, as well as draw to screen if needed
         self.redrawFlag = self.executeOpcode()
         if self.redrawFlag:
             return True
+
 
