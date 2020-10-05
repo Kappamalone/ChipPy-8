@@ -326,15 +326,15 @@ class Chip8:
             elif self.NN == 0x55:
                 #Fx55: Store all register data till Vx(included) in memory starting at I
                 for register in range(self.X+1):
-                    self.memory[self.index] = self.V[register]
-                    self.index += 1 #the original implementation increased index
+                    self.memory[self.index + register] = self.V[register]
+                    #self.index += 1 #the original implementation increased index
                 print('Executing Fx55: ', hex(self.opcode))
 
             elif self.NN == 0x65:
                 #Fx65: Read data from index into registers till Vx(included)
                 for register in range(self.X+1):
-                    self.V[register] = self.memory[self.index]
-                    self.index += 1 #the original implementation increased index
+                    self.V[register] = self.memory[self.index+register]
+                    #self.index += 1 #the original implementation increased index
                 print('Executing Fx65: ', hex(self.opcode))
 
             
