@@ -12,13 +12,15 @@ class window:
         #Setup the chip-8 emulator by loading fontset and rom into memory
         self.emulator = Chip8()
         self.emulator.loadFontSet()
-        self.rom = input('1: IBM, 2: BC, 3: Test: ')
+        self.rom = input('1: IBM, 2: BC, 3: Test, 4: Pong: ')
         if self.rom == '1':
             self.emulator.loadRom('IBM Logo.ch8')
         elif self.rom == '2':
             self.emulator.loadRom('BC_test.ch8')
         elif self.rom == '3':
             self.emulator.loadRom('test_opcode.ch8')
+        elif self.rom == '4':
+            self.emulator.loadRom('pong.ch8')
 
         #Setting up pygame variables
         self.width = 64 * 16
@@ -48,7 +50,9 @@ class window:
                     self.isRunning = False
 
             self.drawFlag = self.emulator.cycle()
-            #self.command = input('Enter command: ')
+            self.command = input('Enter command: ')
+            if self.command == 'reg':
+                print(self.emulator.V)
             if self.drawFlag:
                 self.drawGrid()
                 pygame.display.update()
@@ -58,7 +62,7 @@ class window:
 
 if __name__ == "__main__":
     ''''
-    emulator = Chip8()
+    emulator = Chip8()3
     emulator.loadFontSet()
     emulator.loadRom('IBM Logo.ch8')
     emulator.cycle()'''

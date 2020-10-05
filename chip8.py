@@ -1,5 +1,6 @@
 import random
 
+
 class Chip8:
     """The basic shape of chip8.
         Sacrificing moudularity since this is a pretty difficult project.
@@ -97,6 +98,8 @@ class Chip8:
         if self.identifier == 0x0:
             if self.NN == 0xEE:
                 #00EE: Return from subroutine
+                if self.stackPointer < 0:
+                    print('ERRORRRRRRRRRRRRRR')
                 self.pc = self.stack[self.stackPointer]
                 self.stackPointer -= 1
 
@@ -145,7 +148,9 @@ class Chip8:
 
         elif self.identifier == 0x7:
             #7xnn: Set register VX to VX += nn
-            self.V[self.X] += self.NN
+
+            #TEMP FIX!!!!!!
+            self.V[self.X] = self.V[self.X] + self.NN
             print('Executing 7xnn: ', hex(self.opcode))
 
         elif self.identifier == 0x8:
@@ -176,7 +181,7 @@ class Chip8:
                     self.V[0xF] = 1
                 else:
                     self.V[0xF] = 0
-                self.Vx = self.VxADDVy & 0xFF
+                self.V[self.X] = self.VxADDVy & 0xFF
                 print('Executing 8xy4: ', hex(self.opcode))
 
             elif self.N == 0x5:
@@ -186,17 +191,13 @@ class Chip8:
                 else:
                     self.V[0xF] = 0
                 
-                self.V[self.X] = self.V[self.X] - self.V[self.Y]
+                self.V[self.X] = (self.V[self.X] - self.V[self.Y]) 
                 print('Executing 8xy5: ', hex(self.opcode))
 
             elif self.N == 0x6:
                 #8xy6: Set Vx = Vx SHR 1
-                if self.V[self.X] & 0x1:
-                    self.V[0xF] = 1
-                else:
-                    self.V[0xF] = 0
-
-                self.V[self.X] /= 2
+                self.V[0xF] = self.V[self.X] & 0x1
+                self.V[self.X] = self.V[self.Y] >> 1
                 print('Executing 8xy6: ', hex(self.opcode))
 
             elif self.N == 0x7:
@@ -216,7 +217,7 @@ class Chip8:
                 else:
                     self.V[0xF] = 0
                 
-                self.V[self.X] *= 2
+                self.V[self.X] = self.V[self.Y] << 1
                 print('Executing 8xyE: ', hex(self.opcode))
 
         elif self.identifier == 0x9:
@@ -254,11 +255,11 @@ class Chip8:
                     if (self.spriteByte & (2**(7-column))) > 0:
                         self.spritePixel = 1 
 
-                    self.screenPixel = self.video[self.Yvalue + row][self.Xvalue + column]
+                    self.screenPixel = self.video[(self.Yvalue + row) % 32][(self.Xvalue + column) % 64]
                     
 
                     self.spriteXorScreen = self.spritePixel ^ self.screenPixel
-                    self.video[self.Yvalue + row][self.Xvalue + column] = self.spriteXorScreen
+                    self.video[(self.Yvalue + row) % 32][(self.Xvalue + column) % 64] = self.spriteXorScreen
                     
                     #If screen pixel has been xor'ed, then set collision flag
                     if self.spritePixel and not self.spriteXorScreen:
@@ -279,19 +280,31 @@ class Chip8:
                 self.ones = (self.Vx) % 10
 
                 self.BCD = [self.hundreds,self.tens,self.ones]
-                
 
                 for i in range(3):
                     self.memory[self.index + i] = self.BCD[i]
-
-            elif self.NN == 0x55:
-                #Fx55: Store all register data in memory starting at I
-                self.storeAddr = self.index
-                for register in self.V:
-                    self.memory[self.storeAddr] = register
-                    self.storeAddr += 1
-                print('Executing Fx55: ', hex(self.opcode))
+                print('Executing Fx33: ', hex(self.opcode))
             
+
+            
+            elif self.NN == 0x55:
+                #Fx55: Store all register data till Vx(included) in memory starting at I
+                for register in range(self.X+1):
+                    self.memory[self.index] = self.V[register]
+                    self.index += 1 #the original implementation increased index
+                print('Executing Fx55: ', hex(self.opcode))
+
+            elif self.NN == 0x65:
+                #Fx65: Read data from index into registers till Vx(included)
+                for register in range(self.X+1):
+                    self.V[register] = self.memory[self.index]
+                    self.index += 1 #the original implementation increased index
+                print('Executing Fx65: ', hex(self.opcode))
+
+            
+        #This makes each register an unsigned 8 bit integer
+        for i in range(len(self.V)):
+            self.V[i] &= 0xFF
             
 
         
