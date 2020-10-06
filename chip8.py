@@ -30,8 +30,8 @@ class Chip8:
         self.stackPointer = -1
 
         #Both these timers decrement at a rate of 60hz if not 0
-        self.delayTimer = None
-        self.soundTimer = None
+        self.delayTimer = 0
+        self.soundTimer = 0
 
         #The keypad has the hexadecimal characters for input
         self.keypad = [0] * 16
@@ -89,6 +89,10 @@ class Chip8:
 
     def getVideo(self):
         return self.video
+
+    def getSoundTimer(self):
+        return self.soundTimer
+
 
     def executeOpcode(self):
         #Decode a given opcode and extract the required
@@ -355,12 +359,20 @@ class Chip8:
         self.pc += 2
 
         #Deal with timers
-        self.timerCounter += 1
+        if self.delayTimer > 0:
+            self.delayTimer -= 1
+        if self.soundTimer > 0:
+            self.soundTimer -= 1
+        
+        '''self.timerCounter += 1
         if self.timerCounter % self.timerThreshhold == 0:
-            if self.delayTimer:
+            if self.delayTimer > 0:
+                print('delaytimer: ', self.delayTimer)
                 self.delayTimer -= 1
-            if self.soundTimer:
+            if self.soundTimer > 0:
                 self.soundTimer -= 1
+                print('soundtimer: ', self.soundTimer)'''
+
         
         #decode and execute instruction, as well as draw to screen if needed
         self.redrawFlag = self.executeOpcode()

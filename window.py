@@ -1,5 +1,6 @@
 import pygame
 from chip8 import Chip8
+from timeit import default_timer as timer
 
 pygame.init()
 pygame.display.set_caption('ChipPy-8')
@@ -7,10 +8,16 @@ pygame.display.set_caption('ChipPy-8')
 class window:
     '''Class to handle Chip-8 timing and pygame shenanigans'''
 
-    def __init__(self):
+    def __init__(self,speed = 600):
+
+        #Setting up timer stuff
+        self.start = timer()
+        self.end = None
+        self.speed = speed
+        self.hertz = 1/speed
 
         #Setup the chip-8 emulator by loading fontset and rom into memory
-        self.emulator = Chip8()
+        self.emulator = Chip8(self.speed)
         self.emulator.loadFontSet()
         self.rom = input('1: IBM, 2: BC, 3: Test, 4: Pong: ')
         if self.rom == '1':
@@ -20,7 +27,7 @@ class window:
         elif self.rom == '3':
             self.emulator.loadRom('test_opcode.ch8')
         elif self.rom == '4':
-            self.emulator.loadRom('pong.ch8')
+            self.emulator.loadRom('games/PONG2')
         elif self.rom == '5':
             self.emulator.loadRom('tetris.ch8')
 
@@ -47,18 +54,26 @@ class window:
     def main(self):
         self.drawGrid()
         pygame.display.update()
-        while self.isRunning:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.isRunning = False
 
-            self.drawFlag = self.emulator.cycle()
-            self.command = input('Enter command: ')
-            if self.command == 'reg':
-                print(self.emulator.V)
-            if self.drawFlag:
-                self.drawGrid()
-                pygame.display.update()
+        while self.isRunning:
+            self.end = timer()
+            for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        self.isRunning = False
+            if (self.end - self.start) > self.hertz:
+                self.drawFlag = self.emulator.cycle()
+                #self.command = input('Enter command: ')
+                #if self.command == 'reg':
+                #    print(self.emulator.V)
+                if self.drawFlag:
+                    self.drawGrid()
+                    pygame.display.update()
+                self.start = self.end
+
+            if self.emulator.getSoundTimer() > 0:
+                pygame.mixer.music.play(-1)
+                    
+
 
 
 
@@ -71,6 +86,8 @@ if __name__ == "__main__":
     emulator.cycle()'''
     pygame.init()
     pygame.display.set_caption('ChipPy-8')
-
+    pygame.mixer.init()
+    pygame.mixer.music.load("beep.mp3")
+    
     window = window()
     window.main()
