@@ -2,9 +2,9 @@ import random
 
 
 class Chip8:
-    """The basic shape of chip8.
-        Sacrificing moudularity since this is a pretty difficult project.
-        Therefore the entire thing is going to be in one class."""
+    """The shape of Chip-8. All opcodes have been implemented in accordance
+    to Cowgod's technical documentation, which means modern opcodes are being 
+    used over the original chip-8 spec"""
 
     def __init__(self,speed = 600):
         #The start of the program/data space of memory where the roms are loaded from
@@ -94,7 +94,7 @@ class Chip8:
         return self.soundTimer
 
 
-    def executeOpcode(self):
+    def executeOpcode(self,keypress):
         #Decode a given opcode and extract the required
         #values from the opcode which are X, Y and N
 
@@ -160,7 +160,6 @@ class Chip8:
         elif self.identifier == 0x7:
             #7xnn: Set register VX to VX += nn
 
-            #TEMP FIX!!!!!!
             self.V[self.X] = self.V[self.X] + self.NN
             print('Executing 7xnn: ', hex(self.opcode))
 
@@ -244,11 +243,12 @@ class Chip8:
         elif self.identifier == 0xB:
             #Bnnn: Jump to location nnn + V[0]
             self.pc = self.NNN + self.V[0]
-            #self.pc = self.NNN + self.V[self.X]
+            print('Executing Bnnn: ', hex(self.opcode))
 
         elif self.identifier == 0xC:
             #Cxkk: Set Vx to random byte AND nn
             self.V[self.X] = random.randint(0,256) & self.NN
+            print('Executing Cxkk: ', hex(self.opcode))
 
         elif self.identifier == 0xD:
             # Dxyn: Draw and display
@@ -285,31 +285,44 @@ class Chip8:
         elif self.identifier == 0xE:
             if self.N == 0xE:
                 #Ex9E: Skip next instruction if key with value of Vx pressed
-                pass
+                if self.V[self.X] == keypress:
+                    self.pc += 2
+                print('Executing Ex9E: ', hex(self.opcode))
             elif self.N == 0x1:
                 #ExA1: Skip next instruction if key with the value of Vx not pressed
-                pass
+                if self.V[self.X] != keypress:
+                    self.pc += 2
+                print('Executing ExA1: ', hex(self.opcode))
         elif self.identifier == 0xF:
             if self.NN == 0x07:
                 #Fx07: Set Vx = delay timer value
                 self.V[self.X] = self.delayTimer
+                print('Executing Fx07: ', hex(self.opcode))
             elif self.NN == 0x0A:
                 #Fx0A: Block execution until key pressed, value stored in Vx
-                pass
+                if not keypress:
+                    pc -= 2
+                else:
+                    self.V[self.X] = keypress
+                print('Executing Fx0A: ', hex(self.opcode))
             elif self.NN == 0x15:
                 #Fx15: Set Delay timer = Vx
                 self.delayTimer = self.V[self.X]
+                print('Executing Fx15: ', hex(self.opcode))
             elif self.NN == 0x18:
                 #Fx18: Set sound timer = Vx
                 self.soundTimer = self.V[self.X]
+                print('Executing Fx18: ', hex(self.opcode))
             elif self.NN == 0x1E:
                 #Fx1E: Index and Vx are added and stored in index
                 self.index += self.V[self.X]
+                print('Executing Fx1E: ', hex(self.opcode))
             elif self.NN == 0x29:
                 #Fx29: Set Index to address of hexadecimal character in Vx
                 self.char = self.V[self.X] & 0x0F
                 self.addressOfChar = self.char * 5 + self.FONT_ADDR
                 self.index = self.addressOfChar
+                print('Executing Fx29: ', hex(self.opcode))
             
             elif self.NN == 0x33:
                 #Fx33: Store BCD representation of Vx in memory locations I, I+1 and I+2
@@ -349,7 +362,7 @@ class Chip8:
 
         
 
-    def cycle(self):
+    def cycle(self,keypress = None):
         #The main fetch, decode execute cycle of the processor
         
         #fetch and construct the opcode from two bytes, the current pc and pc+1
@@ -358,24 +371,18 @@ class Chip8:
         #increment pc by two as each instruction is 2 bytes
         self.pc += 2
 
-        #Deal with timers
-        if self.delayTimer > 0:
-            self.delayTimer -= 1
-        if self.soundTimer > 0:
-            self.soundTimer -= 1
-        
-        '''self.timerCounter += 1
+        #Deal with timers: Makes sure to adjust timer decrements according to
+        #speed the emulator runs at
+        self.timerCounter += 1
         if self.timerCounter % self.timerThreshhold == 0:
             if self.delayTimer > 0:
-                print('delaytimer: ', self.delayTimer)
                 self.delayTimer -= 1
             if self.soundTimer > 0:
                 self.soundTimer -= 1
-                print('soundtimer: ', self.soundTimer)'''
 
         
         #decode and execute instruction, as well as draw to screen if needed
-        self.redrawFlag = self.executeOpcode()
+        self.redrawFlag = self.executeOpcode(keypress)
         if self.redrawFlag:
             return True
 

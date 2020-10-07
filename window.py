@@ -1,9 +1,7 @@
 import pygame
 from chip8 import Chip8
 from timeit import default_timer as timer
-
-pygame.init()
-pygame.display.set_caption('ChipPy-8')
+import sys
 
 class window:
     '''Class to handle Chip-8 timing and pygame shenanigans'''
@@ -13,23 +11,13 @@ class window:
         #Setting up timer stuff
         self.start = timer()
         self.end = None
-        self.speed = speed
+        self.speed = int(sys.argv[2])
         self.hertz = 1/speed
 
         #Setup the chip-8 emulator by loading fontset and rom into memory
         self.emulator = Chip8(self.speed)
         self.emulator.loadFontSet()
-        self.rom = input('1: IBM, 2: BC, 3: Test, 4: Pong: ')
-        if self.rom == '1':
-            self.emulator.loadRom('IBM Logo.ch8')
-        elif self.rom == '2':
-            self.emulator.loadRom('BC_test.ch8')
-        elif self.rom == '3':
-            self.emulator.loadRom('test_opcode.ch8')
-        elif self.rom == '4':
-            self.emulator.loadRom('games/PONG2')
-        elif self.rom == '5':
-            self.emulator.loadRom('tetris.ch8')
+        self.rom = self.emulator.loadRom(sys.argv[1])
 
         #Setting up pygame variables
         self.width = 64 * 16
@@ -52,26 +40,70 @@ class window:
 
                     
     def main(self):
+        #Setup the grid of values
         self.drawGrid()
         pygame.display.update()
 
+        self.key = None
+
         while self.isRunning:
-            self.end = timer()
             for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         self.isRunning = False
+                    elif event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_1:
+                            self.key = 0x1
+                        elif event.key == pygame.K_2:
+                            self.key = 0x2
+                        elif event.key == pygame.K_3:
+                            self.key = 0x3
+                        elif event.key == pygame.K_4:
+                            self.key = 0xC
+                        elif event.key == pygame.K_q:
+                            self.key = 0x4
+                        elif event.key == pygame.K_w:
+                            self.key = 0x5
+                        elif event.key == pygame.K_e:
+                            self.key = 0x6
+                        elif event.key == pygame.K_r:
+                            self.key = 0xD
+                        elif event.key == pygame.K_a:
+                            self.key = 0x7
+                        elif event.key == pygame.K_s:
+                            self.key = 0x8
+                        elif event.key == pygame.K_d:
+                            self.key = 0x9
+                        elif event.key == pygame.K_f:
+                            self.key = 0xE
+                        elif event.key == pygame.K_z:
+                            self.key = 0xA
+                        elif event.key == pygame.K_x:
+                            self.key = 0x0
+                        elif event.key == pygame.K_c:
+                            self.key = 0xB
+                        elif event.key == pygame.K_v:
+                            self.key = 0xF
+                    elif event.type == pygame.KEYUP:
+                        self.key = None
+
+            #Executes instructin at speed hz
+            self.end = timer()
             if (self.end - self.start) > self.hertz:
-                self.drawFlag = self.emulator.cycle()
+                self.drawFlag = self.emulator.cycle(self.key)
                 #self.command = input('Enter command: ')
                 #if self.command == 'reg':
                 #    print(self.emulator.V)
+
+                #if draw flag reached, redraw screen
                 if self.drawFlag:
                     self.drawGrid()
                     pygame.display.update()
                 self.start = self.end
 
-            if self.emulator.getSoundTimer() > 0:
-                pygame.mixer.music.play(-1)
+                if self.emulator.getSoundTimer() > 0:
+                    pygame.mixer.music.unpause()
+                else:
+                    pygame.mixer.music.pause()
                     
 
 
@@ -79,15 +111,12 @@ class window:
 
 
 if __name__ == "__main__":
-    ''''
-    emulator = Chip8()3
-    emulator.loadFontSet()
-    emulator.loadRom('IBM Logo.ch8')
-    emulator.cycle()'''
     pygame.init()
     pygame.display.set_caption('ChipPy-8')
     pygame.mixer.init()
-    pygame.mixer.music.load("beep.mp3")
-    
+    pygame.mixer.music.load("beep.ogg")
+    pygame.mixer.music.play(-1)
+    pygame.mixer.music.pause()
+
     window = window()
     window.main()
